@@ -62,3 +62,15 @@ npm run tauri build
 - `/src`：React 前端页面、UI 组件逻辑。
 - `/src-tauri`：Rust 后端与 Tauri 核心配置文件。
 - `/src-tauri/src/lib.rs`：Yolo CLI 调用绑定、系统事件通讯。
+
+## 📸 软件截图
+
+<p align="center">
+  <img src="docs/screenshot1.png" alt="训练" width="720" />
+</p>
+<p align="center">
+  <img src="docs/screenshot2.png" alt="验证" width="720" />
+</p>
+<p align="center">
+  <img src="docs/screenshot3.png" alt="推理" width="720" />
+</p>

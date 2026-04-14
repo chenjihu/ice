@@ -60,3 +60,15 @@ npm run tauri build
 - `/src` — React frontend pages and UI components.
 - `/src-tauri` — Rust backend and Tauri configuration.
 - `/src-tauri/src/lib.rs` — YOLO CLI bindings and system event communication.
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/screenshot1.png" alt="Training" width="720" />
+</p>
+<p align="center">
+  <img src="docs/screenshot2.png" alt="Validation" width="720" />
+</p>
+<p align="center">
+  <img src="docs/screenshot3.png" alt="Inference" width="720" />
+</p>
