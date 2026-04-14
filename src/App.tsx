@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, forwardRef } from "react";
+import { useLang } from "./LangContext";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -51,6 +52,7 @@ function ModelPicker({ value, onChange, localModels }: {
   onChange: (v: string) => void;
   localModels: string[];
 }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -78,7 +80,7 @@ function ModelPicker({ value, onChange, localModels }: {
           <span className="text-neutral-600 text-xs font-mono">{value}</span>
         </span>
         <span className="flex items-center gap-1.5">
-          {isLocal && <span className="text-xs text-green-400 bg-green-400/10 border border-green-400/20 px-1.5 py-0.5 rounded-full">本地</span>}
+          {isLocal && <span className="text-xs text-green-400 bg-green-400/10 border border-green-400/20 px-1.5 py-0.5 rounded-full">{t.local_badge}</span>}
           <span className="text-neutral-500">▾</span>
         </span>
       </button>
@@ -105,7 +107,7 @@ function ModelPicker({ value, onChange, localModels }: {
                       <span className="text-neutral-600 text-xs font-mono">{m.value}</span>
                     </span>
                     {local && (
-                      <span className="text-xs text-green-400 bg-green-400/10 border border-green-400/20 px-1.5 py-0.5 rounded-full shrink-0">本地</span>
+                      <span className="text-xs text-green-400 bg-green-400/10 border border-green-400/20 px-1.5 py-0.5 rounded-full shrink-0">{t.local_badge}</span>
                     )}
                   </button>
                 );
@@ -119,6 +121,7 @@ function ModelPicker({ value, onChange, localModels }: {
 }
 
 function CopyBundledModelButton({ modelDir }: { modelDir: string }) {
+  const { t } = useLang();
   const [status, setStatus] = useState<"idle" | "copying" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
 
@@ -143,10 +146,10 @@ function CopyBundledModelButton({ modelDir }: { modelDir: string }) {
         className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 px-3 py-2 rounded-lg text-xs transition-colors disabled:opacity-50"
       >
         <Download size={13} />
-        {status === "copying" ? "复制中..." : "复制内置 yolo26n-cls.pt 到此目录"}
+        {status === "copying" ? t.copying : t.copy_bundled}
       </button>
       {status === "done" && (
-        <p className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 size={11} /> 已复制：{msg}</p>
+        <p className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 size={11} /> {t.copy_done}{msg}</p>
       )}
       {status === "error" && (
         <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle size={11} /> {msg}</p>
@@ -156,6 +159,7 @@ function CopyBundledModelButton({ modelDir }: { modelDir: string }) {
 }
 
 function App() {
+  const { lang, t, toggleLang } = useLang();
   const [activeTab, setActiveTab] = useState("train");
   const [yoloVersion, setYoloVersion] = useState<string | null | undefined>(undefined);
 
@@ -366,22 +370,31 @@ function App() {
 
         {/* Logo */}
         <div className="p-5 pb-4 border-b border-neutral-800">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
-            <ScanSearch size={20} className="text-blue-500 shrink-0" />
-            ice
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
+              <ScanSearch size={20} className="text-blue-500 shrink-0" />
+              ice
+            </h1>
+            <button
+              onClick={toggleLang}
+              className="text-xs px-2 py-1 rounded-md border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 transition-colors font-mono"
+              title="Switch language"
+            >
+              {lang === "en" ? "中文" : "EN"}
+            </button>
+          </div>
           <p className="text-xs text-neutral-500 mt-0.5">Image Classification Engine</p>
         </div>
 
         {/* Nav */}
         <div className="p-3 flex flex-col gap-1">
-          <p className="text-xs text-neutral-600 font-semibold uppercase tracking-wider px-2 mb-1">功能</p>
+          <p className="text-xs text-neutral-600 font-semibold uppercase tracking-wider px-2 mb-1">{t.nav_features}</p>
           {([
-            { id: "train", icon: <FolderUp size={16} />, label: "Training" },
-            { id: "val",   icon: <Activity size={16} />, label: "Validation" },
-            { id: "export",icon: <Download size={16} />, label: "Export" },
-            { id: "predict",icon: <ScanSearch size={16} />, label: "Inference" },
-            { id: "settings", icon: <Settings size={16} />, label: "Settings" },
+            { id: "train", icon: <FolderUp size={16} />, label: t.nav_train },
+            { id: "val",   icon: <Activity size={16} />, label: t.nav_val },
+            { id: "export",icon: <Download size={16} />, label: t.nav_export },
+            { id: "predict",icon: <ScanSearch size={16} />, label: t.nav_predict },
+            { id: "settings", icon: <Settings size={16} />, label: t.nav_settings },
           ] as const).map(({ id, icon, label }) => (
             <button
               key={id}
@@ -393,20 +406,20 @@ function App() {
           ))}
         </div>
 
-        {/* Project Workspace — 独立持久面板 */}
+        {/* Project Workspace */}
         <div className="mt-auto border-t border-neutral-800 p-3 flex flex-col gap-2">
-          <p className="text-xs text-neutral-600 font-semibold uppercase tracking-wider px-1 mb-1">项目工作区</p>
+          <p className="text-xs text-neutral-600 font-semibold uppercase tracking-wider px-1 mb-1">{t.workspace}</p>
 
           {/* Output folder */}
           <div className="bg-neutral-900 rounded-lg p-2.5 border border-neutral-800">
-            <p className="text-xs text-neutral-500 mb-1">训练输出目录</p>
+            <p className="text-xs text-neutral-500 mb-1">{t.output_dir}</p>
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-neutral-300 truncate flex-1 font-mono">
-                {projectDir || <span className="text-neutral-600 italic">未选择</span>}
+                {projectDir || <span className="text-neutral-600 italic">{t.not_selected}</span>}
               </span>
               <button
                 onClick={() => selectFolder(setProjectDir)}
-                title="选择训练输出目录"
+                title={t.select_output_dir}
                 className="shrink-0 text-neutral-500 hover:text-blue-400 transition-colors"
               >
                 <FolderOpen size={14} />
@@ -416,7 +429,7 @@ function App() {
 
           {/* Training result */}
           <div className={`rounded-lg p-2.5 border transition-colors ${trainOutputPath ? "bg-blue-500/10 border-blue-500/30" : "bg-neutral-900 border-neutral-800"}`}>
-            <p className="text-xs text-neutral-500 mb-1">训练结果</p>
+            <p className="text-xs text-neutral-500 mb-1">{t.train_result}</p>
             {trainOutputPath ? (
               <>
                 <p className="text-xs text-blue-300 font-mono truncate">{bestPtPath}</p>
@@ -424,11 +437,11 @@ function App() {
                   onClick={() => invoke("open_folder", { path: trainOutputPath })}
                   className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-md transition-colors"
                 >
-                  <FolderOpen size={12} /> 打开结果文件夹
+                  <FolderOpen size={12} /> {t.open_result_folder}
                 </button>
               </>
             ) : (
-              <p className="text-xs text-neutral-600 italic">训练完成后自动显示</p>
+              <p className="text-xs text-neutral-600 italic">{t.result_auto}</p>
             )}
           </div>
 
@@ -437,7 +450,7 @@ function App() {
             {yoloVersion === null && (
               <div className="flex items-center gap-1.5 text-red-400">
                 <AlertCircle size={12} className="shrink-0" />
-                <span className="text-xs">未安装 Ultralytics</span>
+                <span className="text-xs">{t.yolo_not_installed}</span>
               </div>
             )}
             {typeof yoloVersion === "string" && (
@@ -447,7 +460,7 @@ function App() {
                   <span className="text-xs text-green-400 font-mono">{yoloVersion}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-neutral-500">模型架构</span>
+                  <span className="text-xs text-neutral-500">{t.model_arch}</span>
                   <span className="text-xs text-blue-400 font-mono">
                     {baseModel.startsWith("yolo26") ? "YOLO26" : baseModel.startsWith("yolo11") ? "YOLO11" : "YOLOv8"}
                   </span>
@@ -464,22 +477,22 @@ function App() {
           <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-6 flex items-center gap-3">
             <AlertCircle className="shrink-0" />
             <div>
-              <p className="font-semibold text-sm">未检测到 Ultralytics (YOLO) 命令行工具</p>
-              <p className="text-xs mt-1">请确保系统已安装 Python，并在终端中运行 <code className="bg-red-500/20 px-1 py-0.5 rounded">pip install ultralytics</code>。安装成功后请重启本应用。</p>
+              <p className="font-semibold text-sm">{t.yolo_not_installed}</p>
+              <p className="text-xs mt-1">{t.yolo_install_hint} <code className="bg-red-500/20 px-1 py-0.5 rounded">pip install ultralytics</code>{t.yolo_install_hint2}</p>
             </div>
           </div>
         )}
 
         {activeTab === "train" && (
           <div className="max-w-3xl space-y-4">
-            <h2 className="text-2xl font-bold">Training</h2>
+            <h2 className="text-2xl font-bold">{t.train_title}</h2>
 
-            {/* ── Step 1: Data ── */}
+            {/* Step 1: Data */}
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">1 · 训练数据</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{t.step_data}</p>
               <div className="flex gap-2">
-                <input readOnly value={trainData} placeholder="选择包含分类子文件夹的图片目录" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500" />
-                <button onClick={selectTrainData} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">Browse</button>
+                <input readOnly value={trainData} placeholder={t.select_data_placeholder} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500" />
+                <button onClick={selectTrainData} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">{t.browse}</button>
               </div>
 
               {/* Dataset stats */}
@@ -488,11 +501,11 @@ function App() {
                   <div className="flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-1.5 text-neutral-300">
                       <Layers size={14} className="text-blue-400" />
-                      <span className="font-semibold text-white">{datasetInfo.classes.length}</span> 种类
+                      <span className="font-semibold text-white">{datasetInfo.classes.length}</span> {t.classes}
                     </span>
                     <span className="flex items-center gap-1.5 text-neutral-300">
                       <ImageIcon size={14} className="text-blue-400" />
-                      <span className="font-semibold text-white">{datasetInfo.total}</span> 张图片
+                      <span className="font-semibold text-white">{datasetInfo.total}</span> {t.images}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
@@ -517,22 +530,22 @@ function App() {
               )}
             </div>
 
-            {/* ── Step 2: Config ── */}
+            {/* Step 2: Config */}
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">2 · 训练配置</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{t.step_config}</p>
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Base Model</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.base_model}</label>
                 <ModelPicker value={baseModel} onChange={setBaseModel} localModels={localModels} />
                 {modelDir ? (
                   <p className="text-xs text-green-400 mt-1.5 flex items-center gap-1">
-                    <CheckCircle2 size={11} /> 优先从本地加载：<code className="bg-neutral-800 px-1 rounded font-mono">{modelDir}</code>
+                    <CheckCircle2 size={11} /> {t.local_model_hint}<code className="bg-neutral-800 px-1 rounded font-mono">{modelDir}</code>
                   </p>
                 ) : (
-                  <p className="text-xs text-neutral-500 mt-1.5">首次使用将自动下载权重（需联网），后续缓存至 <code className="bg-neutral-800 px-1 rounded">~/.cache/ultralytics/</code>。可在 Settings 中配置本地模型目录。</p>
+                  <p className="text-xs text-neutral-500 mt-1.5">{t.download_model_hint} <code className="bg-neutral-800 px-1 rounded">~/.cache/ultralytics/</code>. {t.settings_hint}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">训练轮次(Epochs)</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.epochs_label}</label>
                 <input type="number" min={1} value={epochs} onChange={(e) => setEpochs(e.target.value)} className="w-28 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500" />
               </div>
             </div>
@@ -542,19 +555,19 @@ function App() {
               {!projectDir && (
                 <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-2 rounded-lg text-xs flex items-center gap-2">
                   <AlertCircle size={14} className="shrink-0" />
-                  请先在左侧"项目工作区"选择 训练输出目录
+                  {t.need_output_dir}
                 </div>
               )}
               <button onClick={runTrain} disabled={isTraining || !projectDir || !trainData} className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 py-2.5 rounded-lg font-medium text-sm transition-colors flex justify-center items-center gap-2">
                 {isTraining ? <Activity size={16} className="animate-pulse" /> : <Play size={16} />}
-                {isTraining ? "训练中…" : "Start Training"}
+                {isTraining ? t.training : t.start_training}
               </button>
             </div>
 
             {/* ── Log ── */}
             {(isTraining || trainLog) && (
               <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">Output Log</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{t.output_log}</p>
                 <AnsiLog
                   text={trainLog}
                   className="bg-neutral-950 p-3 rounded-lg font-mono text-xs h-56 overflow-y-auto whitespace-pre-wrap border border-neutral-800"
@@ -567,40 +580,40 @@ function App() {
 
         {activeTab === "val" && (
           <div className="max-w-3xl space-y-4">
-            <h2 className="text-2xl font-bold">Validation</h2>
-            <p className="text-sm text-neutral-400">选择训练好的模型和带分类子文件夹的数据目录，逐张验证分类是否正确。</p>
+            <h2 className="text-2xl font-bold">{t.val_title}</h2>
+            <p className="text-sm text-neutral-400">{t.val_desc}</p>
 
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">模型文件 (.pt)</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.model_file}</label>
                 <div className="flex gap-2">
-                  <input readOnly value={valModel} placeholder="选择模型文件" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
-                  <button onClick={() => selectFile(setValModel, "Model", ["pt","onnx"])} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">Browse</button>
+                  <input readOnly value={valModel} placeholder={t.select_model_placeholder} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
+                  <button onClick={() => selectFile(setValModel, "Model", ["pt","onnx"])} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">{t.browse}</button>
                 </div>
                 {bestPtPath && valModel === bestPtPath && (
-                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> 已复用左侧训练结果 best.pt</p>
+                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> {t.reused_best}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">验证数据目录</label>
-                <p className="text-xs text-neutral-600 mb-2">目录结构：每个子文件夹名称 = 类别名，文件夹内为该类别图片</p>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.val_data_dir}</label>
+                <p className="text-xs text-neutral-600 mb-2">{t.val_data_hint}</p>
                 <div className="flex gap-2">
-                  <input readOnly value={valData} placeholder="选择包含分类子文件夹的目录" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
-                  <button onClick={() => selectFolder(setValData)} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">Browse</button>
+                  <input readOnly value={valData} placeholder={t.select_val_data_placeholder} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
+                  <button onClick={() => selectFolder(setValData)} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">{t.browse}</button>
                 </div>
               </div>
 
               <button onClick={runVal} disabled={isValidating || !valModel || !valData} className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 py-2.5 rounded-lg font-medium text-sm transition-colors flex justify-center items-center gap-2">
                 {isValidating ? <Activity size={16} className="animate-pulse" /> : <Play size={16} />}
-                {isValidating ? "验证中..." : "开始验证"}
+                {isValidating ? t.validating : t.start_val}
               </button>
             </div>
 
             {/* Live log */}
             {(isValidating || valLog) && (
               <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">验证进度</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{t.val_progress}</p>
                 <div
                   ref={valLogRef}
                   className="bg-neutral-950 p-3 rounded-lg font-mono text-xs h-48 overflow-y-auto whitespace-pre-wrap border border-neutral-800 text-neutral-300"
@@ -623,22 +636,22 @@ function App() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 p-4 text-center">
                     <p className="text-2xl font-bold text-white">{valReport.total}</p>
-                    <p className="text-xs text-neutral-500 mt-1">总图片数</p>
+                    <p className="text-xs text-neutral-500 mt-1">{t.total_images}</p>
                   </div>
                   <div className="bg-green-500/10 rounded-xl border border-green-500/30 p-4 text-center">
                     <p className="text-2xl font-bold text-green-400">{valReport.correct}</p>
-                    <p className="text-xs text-neutral-500 mt-1">分类正确</p>
+                    <p className="text-xs text-neutral-500 mt-1">{t.correct}</p>
                   </div>
                   <div className={`rounded-xl border p-4 text-center ${valReport.mismatches.length > 0 ? "bg-red-500/10 border-red-500/30" : "bg-neutral-800/50 border-neutral-800"}`}>
                     <p className={`text-2xl font-bold ${valReport.mismatches.length > 0 ? "text-red-400" : "text-neutral-400"}`}>{valReport.mismatches.length}</p>
-                    <p className="text-xs text-neutral-500 mt-1">分类错误</p>
+                    <p className="text-xs text-neutral-500 mt-1">{t.incorrect}</p>
                   </div>
                 </div>
 
                 {/* Accuracy bar */}
                 <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 p-4">
                   <div className="flex justify-between text-xs text-neutral-400 mb-2">
-                    <span>准确率</span>
+                    <span>{t.accuracy}</span>
                     <span className="font-mono font-semibold text-white">
                       {valReport.total > 0 ? ((valReport.correct / valReport.total) * 100).toFixed(1) : "0.0"}%
                     </span>
@@ -655,17 +668,17 @@ function App() {
                 {valReport.mismatches.length > 0 ? (
                   <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 overflow-hidden">
                     <div className="px-5 py-3 border-b border-neutral-800 flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-red-400">分类错误列表</p>
-                      <p className="text-xs text-neutral-500">{valReport.mismatches.length} 张</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-red-400">{t.mismatch_list}</p>
+                      <p className="text-xs text-neutral-500">{valReport.mismatches.length}</p>
                     </div>
                     <div className="overflow-y-auto max-h-96">
                       <table className="w-full text-sm">
                         <thead className="sticky top-0 bg-neutral-900">
                           <tr>
-                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium">图片</th>
-                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">期望分类</th>
-                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">实际预测</th>
-                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-24">置信度</th>
+                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium">{t.image}</th>
+                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">{t.expected}</th>
+                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">{t.predicted}</th>
+                            <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-24">{t.confidence}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -696,7 +709,7 @@ function App() {
                 ) : (
                   <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
                     <CheckCircle2 size={16} />
-                    全部分类正确！
+                    {t.all_correct}
                   </div>
                 )}
               </div>
@@ -706,21 +719,21 @@ function App() {
 
         {activeTab === "export" && (
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-bold mb-6">Export Model</h2>
+            <h2 className="text-2xl font-bold mb-6">{t.export_title}</h2>
             <div className="bg-neutral-800/50 p-6 rounded-xl border border-neutral-800 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Source Model (.pt)</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.source_model}</label>
                 <div className="flex gap-2">
-                  <input readOnly value={exportModel} placeholder="选择 PyTorch 模型文件" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500" />
-                  <button onClick={() => selectFile(setExportModel, "PyTorch Model", ["pt"])} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">Browse</button>
+                  <input readOnly value={exportModel} placeholder={t.select_pt_placeholder} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500" />
+                  <button onClick={() => selectFile(setExportModel, "PyTorch Model", ["pt"])} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">{t.browse}</button>
                 </div>
                 {bestPtPath && exportModel === bestPtPath && (
-                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> 已复用左侧训练结果 best.pt</p>
+                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> {t.reused_best}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Target Format</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.target_format}</label>
                 <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500">
                   <option value="onnx">ONNX (.onnx)</option>
                   <option value="engine">TensorRT (.engine)</option>
@@ -730,12 +743,12 @@ function App() {
 
               <button onClick={runExport} disabled={isExporting} className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 py-2.5 rounded-lg font-medium text-sm transition-colors flex justify-center items-center gap-2">
                 {isExporting ? <Activity size={16} className="animate-pulse" /> : <Download size={16} />}
-                {isExporting ? "Exporting..." : "Export Model"}
+                {isExporting ? t.exporting : t.export_btn}
               </button>
 
               {exportLog && (
                 <div>
-                  <h3 className="text-xs font-medium text-neutral-500 mb-2 uppercase tracking-wider">Output Log</h3>
+                  <h3 className="text-xs font-medium text-neutral-500 mb-2 uppercase tracking-wider">{t.output_log}</h3>
                   <AnsiLog text={exportLog} className="bg-neutral-950 p-4 rounded-lg font-mono text-xs h-64 overflow-y-auto whitespace-pre-wrap border border-neutral-800" />
                 </div>
               )}
@@ -745,34 +758,34 @@ function App() {
 
         {activeTab === "predict" && (
           <div className="max-w-3xl space-y-4">
-            <h2 className="text-2xl font-bold">Inference</h2>
+            <h2 className="text-2xl font-bold">{t.predict_title}</h2>
 
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
               {/* Model */}
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Model (.pt / .onnx / .engine / .mlpackage)</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.model_label}</label>
                 <div className="flex gap-2">
-                  <input readOnly value={predictModel} placeholder="选择模型文件" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
-                  <button onClick={() => selectFile(setPredictModel)} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">Browse</button>
+                  <input readOnly value={predictModel} placeholder={t.select_model_predict} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
+                  <button onClick={() => selectFile(setPredictModel)} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-sm transition-colors shrink-0">{t.browse}</button>
                 </div>
                 {bestPtPath && predictModel === bestPtPath && (
-                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> 已复用左侧训练结果 best.pt</p>
+                  <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> {t.reused_best}</p>
                 )}
               </div>
 
               {/* Source */}
               <div>
-                <label className="block text-sm font-medium text-neutral-400 mb-2">Target Image or Folder</label>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">{t.target_image}</label>
                 <div className="flex gap-2">
-                  <input readOnly value={predictSource} placeholder="选择单张图片或整个文件夹" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
-                  <button onClick={() => selectFile(setPredictSource, "Images", ["jpg","jpeg","png","bmp","webp"])} className="bg-neutral-700 hover:bg-neutral-600 px-3 py-2 rounded-lg text-sm transition-colors shrink-0">单张图片</button>
-                  <button onClick={() => selectFolder(setPredictSource)} className="bg-neutral-700 hover:bg-neutral-600 px-3 py-2 rounded-lg text-sm transition-colors shrink-0">文件夹</button>
+                  <input readOnly value={predictSource} placeholder={t.select_image_placeholder} className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none" />
+                  <button onClick={() => selectFile(setPredictSource, "Images", ["jpg","jpeg","png","bmp","webp"])} className="bg-neutral-700 hover:bg-neutral-600 px-3 py-2 rounded-lg text-sm transition-colors shrink-0">{t.single_image}</button>
+                  <button onClick={() => selectFolder(setPredictSource)} className="bg-neutral-700 hover:bg-neutral-600 px-3 py-2 rounded-lg text-sm transition-colors shrink-0">{t.folder}</button>
                 </div>
               </div>
 
               <button onClick={runPredict} disabled={isPredicting || !predictModel || !predictSource} className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 py-2.5 rounded-lg font-medium text-sm transition-colors flex justify-center items-center gap-2">
                 {isPredicting ? <Activity size={16} className="animate-pulse" /> : <Play size={16} />}
-                {isPredicting ? "识别中..." : "Run Inference"}
+                {isPredicting ? t.running : t.run_inference}
               </button>
             </div>
 
@@ -817,17 +830,17 @@ function App() {
             {!predictError && predictResults.length > 1 && (
               <div className="bg-neutral-800/50 rounded-xl border border-neutral-800 overflow-hidden">
                 <div className="px-5 py-3 border-b border-neutral-800 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">推理结果</p>
-                  <p className="text-xs text-neutral-500">{predictResults.length} 张图片</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{t.results}</p>
+                  <p className="text-xs text-neutral-500">{predictResults.length}</p>
                 </div>
                 <div className="overflow-y-auto max-h-96">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-neutral-900">
                       <tr>
                         <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-8">#</th>
-                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium">图片路径</th>
-                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-32">分类</th>
-                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">置信度</th>
+                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium">{t.image_path}</th>
+                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-32">{t.label}</th>
+                        <th className="text-left px-4 py-2 text-xs text-neutral-500 font-medium w-28">{t.confidence}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -864,26 +877,26 @@ function App() {
 
         {activeTab === "settings" && (
           <div className="max-w-xl space-y-6">
-            <h2 className="text-2xl font-bold">Settings</h2>
+            <h2 className="text-2xl font-bold">{t.settings_title}</h2>
 
             {/* Proxy */}
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-white mb-0.5">网络代理</h3>
-                <p className="text-xs text-neutral-500">用于下载模型权重文件。留空则不使用代理。</p>
+                <h3 className="text-sm font-semibold text-white mb-0.5">{t.proxy_title}</h3>
+                <p className="text-xs text-neutral-500">{t.proxy_desc}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1.5">HTTP / HTTPS 代理地址</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1.5">{t.proxy_label}</label>
                 <input
                   type="text"
                   value={proxy}
                   onChange={e => setProxy(e.target.value)}
-                  placeholder="例如 http://127.0.0.1:7890"
+                  placeholder={t.proxy_placeholder}
                   className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500 font-mono"
                 />
                 {proxy && (
                   <p className="text-xs text-green-400 mt-1.5 flex items-center gap-1">
-                    <CheckCircle2 size={11} /> 已启用代理：{proxy}
+                    <CheckCircle2 size={11} /> {t.proxy_enabled}{proxy}
                   </p>
                 )}
               </div>
@@ -892,7 +905,7 @@ function App() {
                   onClick={() => setProxy("")}
                   className="text-xs text-red-400 hover:text-red-300 transition-colors"
                 >
-                  清除代理
+                  {t.clear_proxy}
                 </button>
               )}
             </div>
@@ -900,16 +913,16 @@ function App() {
             {/* Model directory */}
             <div className="bg-neutral-800/50 p-5 rounded-xl border border-neutral-800 space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-white mb-0.5">本地模型文件夹</h3>
-                <p className="text-xs text-neutral-500">训练时优先从此文件夹中查找基础模型（如 yolo11n-cls.pt），找不到才去联网下载。</p>
+                <h3 className="text-sm font-semibold text-white mb-0.5">{t.model_dir_title}</h3>
+                <p className="text-xs text-neutral-500">{t.model_dir_desc}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1.5">模型文件夹路径</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1.5">{t.model_dir_label}</label>
                 <div className="flex gap-2">
                   <input
                     readOnly
                     value={modelDir}
-                    placeholder="选择存放 .pt 文件的文件夹"
+                    placeholder={t.model_dir_placeholder}
                     className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-neutral-300 focus:outline-none font-mono"
                   />
                   <button
@@ -919,7 +932,7 @@ function App() {
                 </div>
                 {modelDir && (
                   <p className="text-xs text-green-400 mt-1.5 flex items-center gap-1">
-                    <CheckCircle2 size={11} /> 已设置：{modelDir}
+                    <CheckCircle2 size={11} /> {t.model_dir_set}{modelDir}
                   </p>
                 )}
               </div>
@@ -934,21 +947,21 @@ function App() {
                   onClick={() => setModelDir("")}
                   className="text-xs text-red-400 hover:text-red-300 transition-colors"
                 >
-                  清除路径
+                  {t.clear_path}
                 </button>
               )}
             </div>
 
             {/* Status summary */}
             <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">当前配置</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-2">{t.current_config}</p>
               <div className="flex justify-between text-xs">
-                <span className="text-neutral-500">代理</span>
-                <span className={`font-mono ${proxy ? "text-green-400" : "text-neutral-600"}`}>{proxy || "未设置"}</span>
+                <span className="text-neutral-500">{t.proxy_config}</span>
+                <span className={`font-mono ${proxy ? "text-green-400" : "text-neutral-600"}`}>{proxy || t.not_set}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-neutral-500">本地模型目录</span>
-                <span className={`font-mono truncate max-w-[200px] text-right ${modelDir ? "text-green-400" : "text-neutral-600"}`}>{modelDir || "未设置"}</span>
+                <span className="text-neutral-500">{t.model_dir_config}</span>
+                <span className={`font-mono truncate max-w-[200px] text-right ${modelDir ? "text-green-400" : "text-neutral-600"}`}>{modelDir || t.not_set}</span>
               </div>
             </div>
           </div>

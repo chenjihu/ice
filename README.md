@@ -2,59 +2,61 @@
   <img src="src-tauri/icons/app-icon.png" width="128" alt="ice icon" />
 </p>
 
+<p align="center">
+  <strong>English</strong> | <a href="README.zh-CN.md">中文</a>
+</p>
+
 # ice - Image Classification Engine
 
-**ice**（Image Classification Engine）是一款基于 Tauri 2.0 框架和 Yolo26 模型的跨平台桌面级图片分类工具。该工具提供轻量化且美观的用户界面，简化了图片分类模型的训练、验证、导出和部署流程。
+**ice** (Image Classification Engine) is a cross-platform desktop application built with Tauri 2.0 and YOLO v26, designed to simplify the full lifecycle of image classification — from training to inference.
 
-## 🌟 核心功能
+## 🌟 Features
 
-1. **分类训练 (Training)**：支持用户上传带分类名称（子文件夹名即为分类标签）的图片文件夹，设置 Epoch 等参数，一键开始模型训练。
-2. **模型验证 (Validation)**：支持选择验证集文件夹以及预训练/新训练的模型进行指标验证。
-3. **格式导出 (Export)**：支持将训练后的模型 (.pt) 导出为业界通用的多种格式，如：
+1. **Training** — Upload an image folder organized by class name (subfolder names are used as labels), configure epochs and other parameters, then start training with one click.
+2. **Validation** — Select a validation dataset and an existing or newly trained model to evaluate classification metrics.
+3. **Export** — Export trained `.pt` models to industry-standard formats:
    - ONNX (`.onnx`)
    - TensorRT (`.engine`)
    - CoreML (`.mlpackage`)
-4. **分类推理 (Inference)**：支持导入导出的 ONNX、TensorRT、CoreML 等模型，并上传单张图片或多张图片的文件夹进行批量分类推理。
+4. **Inference** — Import exported ONNX, TensorRT, or CoreML models and run batch classification on a single image or an entire folder.
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-- **前端**：React 19 + TypeScript + Tailwind CSS v4 + Lucide Icons + Vite
-- **客户端框架**：Tauri 2.0 (采用 Rust 驱动底层操作系统级能力，如原生文件系统选取及子进程调用)
-- **底层推理/训练框架**：YOLO CLI (`ultralytics` 包)
+- **Frontend**: React 19 + TypeScript + Tailwind CSS v4 + Lucide Icons + Vite
+- **Desktop Framework**: Tauri 2.0 (Rust-powered native capabilities: file system access, subprocess management)
+- **ML Backend**: YOLO CLI (`ultralytics` package)
 
-## 🚀 启动与使用指南
+## 🚀 Getting Started
 
-### 环境准备
+### Prerequisites
 
-1. 请确保系统已安装 **Node.js** (推荐 >= 20)。
-2. 请确保系统已安装 **Rust** 及其编译工具链。
-3. 请确保系统已经通过 Python 安装了对应的 `yolo` (Ultralytics) 命令行工具，并且在环境变量 `PATH` 中：
+1. **Node.js** >= 20
+2. **Rust** toolchain ([rustup](https://rustup.rs))
+3. **YOLO CLI** via Python:
    ```bash
    pip install ultralytics
    ```
 
-### 运行开发服务器
-
-在项目根目录下运行：
+### Development
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# 启动桌面开发版
+# Start the desktop dev server
 npm run tauri dev
 ```
 
-### 构建安装包
+### Build
 
-如需将其打包为独立的 macOS / Windows / Linux 应用程序：
+To package the app as a standalone installer for macOS / Windows / Linux:
 
 ```bash
 npm run tauri build
 ```
 
-## 📂 项目结构
+## 📂 Project Structure
 
-- `/src`：React 前端页面、UI 组件逻辑。
-- `/src-tauri`：Rust 后端与 Tauri 核心配置文件。
-- `/src-tauri/src/lib.rs`：Yolo CLI 调用绑定、系统事件通讯。
+- `/src` — React frontend pages and UI components.
+- `/src-tauri` — Rust backend and Tauri configuration.
+- `/src-tauri/src/lib.rs` — YOLO CLI bindings and system event communication.
