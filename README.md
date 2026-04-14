@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="src-tauri/icons/app-icon.png" width="128" alt="ice icon" />
+</p>
+
 # ice - Image Classification Engine
 
 **ice**（Image Classification Engine）是一款基于 Tauri 2.0 框架和 Yolo26 模型的跨平台桌面级图片分类工具。该工具提供轻量化且美观的用户界面，简化了图片分类模型的训练、验证、导出和部署流程。

@@ -370,7 +370,7 @@ function App() {
             <ScanSearch size={20} className="text-blue-500 shrink-0" />
             ice
           </h1>
-          <p className="text-xs text-neutral-500 mt-0.5">Image Classification Tool</p>
+          <p className="text-xs text-neutral-500 mt-0.5">Image Classification Engine</p>
         </div>
 
         {/* Nav */}
