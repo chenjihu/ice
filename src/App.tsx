@@ -368,7 +368,7 @@ function App() {
         <div className="p-5 pb-4 border-b border-neutral-800">
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
             <ScanSearch size={20} className="text-blue-500 shrink-0" />
-            I see
+            ice
           </h1>
           <p className="text-xs text-neutral-500 mt-0.5">Image Classification Tool</p>
         </div>
