@@ -86,6 +86,8 @@ export const translations = {
     results: "Results",
     label: "Label",
     image_path: "Image Path",
+    model_classes: "Model Classes",
+    model_classes_count: "classes",
 
     // Settings
     settings_title: "Settings",
@@ -195,6 +197,8 @@ export const translations = {
     results: "推理结果",
     label: "分类",
     image_path: "图片路径",
+    model_classes: "模型类别",
+    model_classes_count: "个类别",
 
     // Settings
     settings_title: "设置",

@@ -223,6 +223,17 @@ function App() {
   const [predictResults, setPredictResults] = useState<PredictResult[]>([]);
   const [predictError, setPredictError] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [predictModelClasses, setPredictModelClasses] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (predictModel) {
+      invoke<{ names: string[] }>("get_model_classes", { modelPath: predictModel })
+        .then(res => setPredictModelClasses(res.names))
+        .catch(() => setPredictModelClasses([]));
+    } else {
+      setPredictModelClasses([]);
+    }
+  }, [predictModel]);
 
   const selectFolder = async (setter: (val: string) => void) => {
     const selected = await open({
@@ -770,6 +781,18 @@ function App() {
                 </div>
                 {bestPtPath && predictModel === bestPtPath && (
                   <p className="text-xs text-blue-400 mt-1.5 flex items-center gap-1"><CheckCircle2 size={11} /> {t.reused_best}</p>
+                )}
+                {predictModelClasses.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-neutral-500 mb-2">{t.model_classes} <span className="text-neutral-400">({predictModelClasses.length} {t.model_classes_count})</span></p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {predictModelClasses.map((cls, i) => (
+                        <span key={i} className="text-xs bg-neutral-800 text-neutral-300 px-2 py-1 rounded-md border border-neutral-700">
+                          {cls}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 

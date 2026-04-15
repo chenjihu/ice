@@ -444,6 +444,33 @@ async fn run_yolo_predict(model_path: String, source_path: String, proxy: String
 
 const BUNDLED_MODEL: &str = "yolo26n-cls.pt";
 
+#[derive(Serialize)]
+struct ModelClasses {
+    names: Vec<String>,
+}
+
+#[tauri::command]
+fn get_model_classes(model_path: String) -> Result<ModelClasses, String> {
+    let output = Command::new("python3")
+        .args([
+            "-c",
+            &format!(
+                "from ultralytics import YOLO; model = YOLO('{}'); print('\\n'.join(model.names.values()))",
+                model_path.replace('\\', "\\\\").replace("'", "\\'")
+            ),
+        ])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    let names: Vec<String> = text.lines().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+    Ok(ModelClasses { names })
+}
+
 #[tauri::command]
 fn copy_bundled_model(app: tauri::AppHandle, dest_dir: String) -> Result<String, String> {
     let resource_path = app
@@ -495,7 +522,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![check_yolo_installed, scan_data_folder, run_yolo_train, run_classify_val, run_yolo_export, run_yolo_predict, open_folder, copy_bundled_model, set_ultralytics_weights_dir, list_local_models])
+        .invoke_handler(tauri::generate_handler![check_yolo_installed, scan_data_folder, run_yolo_train, run_classify_val, run_yolo_export, run_yolo_predict, open_folder, copy_bundled_model, set_ultralytics_weights_dir, list_local_models, get_model_classes])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
