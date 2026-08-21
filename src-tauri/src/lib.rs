@@ -1,8 +1,71 @@
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
 use std::fs;
+use std::sync::OnceLock;
 use serde::Serialize;
 use tauri::{Emitter, Manager};
+
+/// Apps launched from Finder/Dock (a packaged .app) don't inherit the
+/// interactive shell's PATH — they get launchd's minimal default
+/// ("/usr/bin:/bin:/usr/sbin:/sbin"). That means `yolo`/`python3` installed
+/// via pip into `~/.local/bin`, Homebrew, pyenv, conda, etc. can't be found
+/// even though they work fine from a Terminal. Resolve the "real" PATH by
+/// asking the user's login shell for it (which sources ~/.zprofile,
+/// ~/.bash_profile, etc.), then merge in common install locations as a
+/// fallback. Computed once and cached for the lifetime of the process.
+fn resolved_path_env() -> &'static str {
+    static PATH: OnceLock<String> = OnceLock::new();
+    PATH.get_or_init(|| {
+        let mut paths: Vec<String> = Vec::new();
+
+        // 1) Ask the login shell for its PATH (mirrors what the user sees in Terminal).
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+        if let Ok(output) = Command::new(&shell).args(["-l", "-c", "echo $PATH"]).output() {
+            if output.status.success() {
+                let shell_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !shell_path.is_empty() {
+                    paths.extend(shell_path.split(':').map(|s| s.to_string()));
+                }
+            }
+        }
+
+        // 2) Current process PATH (whatever launchd/tauri gave us).
+        if let Ok(current) = std::env::var("PATH") {
+            paths.extend(current.split(':').map(|s| s.to_string()));
+        }
+
+        // 3) Common install locations, in case neither of the above caught them.
+        let home = std::env::var("HOME").unwrap_or_default();
+        let fallback_dirs = [
+            format!("{}/.local/bin", home),
+            format!("{}/Library/Python/3.13/bin", home),
+            format!("{}/Library/Python/3.12/bin", home),
+            format!("{}/Library/Python/3.11/bin", home),
+            format!("{}/.pyenv/shims", home),
+            format!("{}/miniconda3/bin", home),
+            format!("{}/anaconda3/bin", home),
+            "/opt/homebrew/bin".to_string(),
+            "/opt/homebrew/sbin".to_string(),
+            "/usr/local/bin".to_string(),
+            "/usr/local/sbin".to_string(),
+            "/Library/Frameworks/Python.framework/Versions/3.13/bin".to_string(),
+            "/Library/Frameworks/Python.framework/Versions/3.12/bin".to_string(),
+            "/Library/Frameworks/Python.framework/Versions/3.11/bin".to_string(),
+        ];
+        paths.extend(fallback_dirs);
+
+        // Dedup while preserving order.
+        let mut seen = std::collections::HashSet::new();
+        let deduped: Vec<String> = paths.into_iter().filter(|p| !p.is_empty() && seen.insert(p.clone())).collect();
+        deduped.join(":")
+    })
+}
+
+/// Apply the resolved PATH to a Command so it can find pip-installed
+/// executables (`yolo`, `python3`) regardless of how the app was launched.
+fn apply_path(cmd: &mut Command) {
+    cmd.env("PATH", resolved_path_env());
+}
 
 fn apply_proxy(cmd: &mut Command, proxy: &str) {
     if !proxy.is_empty() {
@@ -117,7 +180,10 @@ fn list_local_models(model_dir: String) -> Vec<String> {
 
 #[tauri::command]
 async fn check_yolo_installed() -> Option<String> {
-    match Command::new("yolo").arg("version").output() {
+    let mut cmd = Command::new("yolo");
+    cmd.arg("version");
+    apply_path(&mut cmd);
+    match cmd.output() {
         Ok(output) if output.status.success() => {
             let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if version.is_empty() {
@@ -154,6 +220,7 @@ async fn run_yolo_train(
         .current_dir(&project_dir)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    apply_path(&mut cmd);
     apply_proxy(&mut cmd, &proxy);
     let mut child = cmd.spawn().map_err(|e| e.to_string())?;
 
@@ -189,10 +256,10 @@ async fn run_yolo_train(
                 // Ask Python for the actual WEIGHTS_DIR (respects user's ultralytics settings)
                 // 1) Try ultralytics WEIGHTS_DIR
                 let mut src_found: Option<std::path::PathBuf> = None;
-                if let Ok(out) = Command::new("python3")
-                    .args(["-c", "from ultralytics.utils import WEIGHTS_DIR; print(WEIGHTS_DIR)"])
-                    .output()
-                {
+                let mut weights_cmd = Command::new("python3");
+                weights_cmd.args(["-c", "from ultralytics.utils import WEIGHTS_DIR; print(WEIGHTS_DIR)"]);
+                apply_path(&mut weights_cmd);
+                if let Ok(out) = weights_cmd.output() {
                     let weights_dir = String::from_utf8_lossy(&out.stdout).trim().to_string();
                     let candidate = std::path::Path::new(&weights_dir).join(&base_model);
                     if candidate.exists() {
@@ -250,6 +317,7 @@ fn predict_single(model_path: &str, image_path: &str, proxy: &str) -> Option<(St
         "save=False",
         "verbose=True",
     ]);
+    apply_path(&mut cmd);
     apply_proxy(&mut cmd, proxy);
     let output = cmd.output().ok()?;
 
@@ -362,6 +430,7 @@ async fn run_classify_val(app: tauri::AppHandle, model_path: String, data_folder
 async fn run_yolo_export(model_path: String, format: String, proxy: String) -> Result<String, String> {
     let mut cmd = Command::new("yolo");
     cmd.args(["export", &format!("model={}", model_path), &format!("format={}", format)]);
+    apply_path(&mut cmd);
     apply_proxy(&mut cmd, &proxy);
     let output = cmd.output().map_err(|e| e.to_string())?;
     
@@ -389,6 +458,7 @@ async fn run_yolo_predict(model_path: String, source_path: String, proxy: String
         "save=False",
         "verbose=True",
     ]);
+    apply_path(&mut cmd);
     apply_proxy(&mut cmd, &proxy);
     let output = cmd.output().map_err(|e| e.to_string())?;
 
@@ -451,16 +521,16 @@ struct ModelClasses {
 
 #[tauri::command]
 fn get_model_classes(model_path: String) -> Result<ModelClasses, String> {
-    let output = Command::new("python3")
-        .args([
-            "-c",
-            &format!(
-                "from ultralytics import YOLO; model = YOLO('{}'); print('\\n'.join(model.names.values()))",
-                model_path.replace('\\', "\\\\").replace("'", "\\'")
-            ),
-        ])
-        .output()
-        .map_err(|e| e.to_string())?;
+    let mut cmd = Command::new("python3");
+    cmd.args([
+        "-c",
+        &format!(
+            "from ultralytics import YOLO; model = YOLO('{}'); print('\\n'.join(model.names.values()))",
+            model_path.replace('\\', "\\\\").replace("'", "\\'")
+        ),
+    ]);
+    apply_path(&mut cmd);
+    let output = cmd.output().map_err(|e| e.to_string())?;
 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
